@@ -678,8 +678,51 @@ function StudentTasksScreen({ studentTasks, onTasksUpdated }) {
   );
 }
 
-// Profile Screen: Display faculty info
-function ProfileScreen({ user }) {
+// Profile Screen: Display faculty info and allow profile updates
+function ProfileScreen({ user, setUser }) {
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email || '');
+  const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleUpdateProfile = async () => {
+    if (!name || !email) {
+      Alert.alert('Error', 'Name and email are required');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.put(
+        `${API_BASE_URL}/api/profile/update`,
+        { name, email },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      Alert.alert('Success', 'Profile updated successfully');
+      
+      // Update local user state
+      const updatedUser = { ...user, name, email };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Refresh the page to show updated info
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Update profile error:', error.response?.data);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.innerContainer}>
@@ -689,31 +732,81 @@ function ProfileScreen({ user }) {
               <Icon name="account" size={24} color={theme.colors.primary} style={{marginRight: 10}} />
               <Title style={styles.sectionTitle}>Faculty Profile</Title>
             </View>
-            <View style={styles.profileRow}>
-              <Icon name="account" size={20} color={theme.colors.primary} style={styles.profileIcon} />
-              <Text style={styles.profileText}>Name: {user.name}</Text>
-            </View>
-            <View style={styles.profileRow}>
-              <Icon name="email" size={20} color={theme.colors.primary} style={styles.profileIcon} />
-              <Text style={styles.profileText}>Email: {user.email || 'N/A'}</Text>
-            </View>
-            <View style={styles.profileRow}>
-              <Icon name="school" size={20} color={theme.colors.primary} style={styles.profileIcon} />
-              <Text style={styles.profileText}>Branch: {user.branch}</Text>
-            </View>
-            <View style={styles.profileRow}>
-              <Icon name="briefcase" size={20} color={theme.colors.primary} style={styles.profileIcon} />
-              <Text style={styles.profileText}>Role: {user.role}</Text>
-            </View>
-            <Button
-              mode="contained"
-              onPress={() => Alert.alert('Info', 'Profile update functionality to be implemented.')}
-              style={styles.button}
-              labelStyle={styles.buttonLabel}
-              icon="pencil"
-            >
-              Update Profile
-            </Button>
+            
+            {!isEditing ? (
+              // Display mode
+              <>
+                <View style={styles.profileRow}>
+                  <Icon name="account" size={20} color={theme.colors.primary} style={styles.profileIcon} />
+                  <Text style={styles.profileText}>Name: {user.name}</Text>
+                </View>
+                <View style={styles.profileRow}>
+                  <Icon name="email" size={20} color={theme.colors.primary} style={styles.profileIcon} />
+                  <Text style={styles.profileText}>Email: {user.email || 'N/A'}</Text>
+                </View>
+                <View style={styles.profileRow}>
+                  <Icon name="school" size={20} color={theme.colors.primary} style={styles.profileIcon} />
+                  <Text style={styles.profileText}>Branch: {user.branch}</Text>
+                </View>
+                <View style={styles.profileRow}>
+                  <Icon name="briefcase" size={20} color={theme.colors.primary} style={styles.profileIcon} />
+                  <Text style={styles.profileText}>Role: {user.role}</Text>
+                </View>
+                <Button
+                  mode="contained"
+                  onPress={() => setIsEditing(true)}
+                  style={styles.button}
+                  labelStyle={styles.buttonLabel}
+                  icon="pencil"
+                >
+                  Edit Profile
+                </Button>
+              </>
+            ) : (
+              // Edit mode
+              <>
+                <Title style={[styles.sectionTitle, { marginTop: 20 }]}>Update Profile</Title>
+                <TextInput
+                  label="Name"
+                  value={name}
+                  onChangeText={setName}
+                  style={styles.input}
+                  mode="outlined"
+                  theme={{ colors: { primary: theme.colors.primary, background: theme.colors.surface } }}
+                />
+                <TextInput
+                  label="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  style={styles.input}
+                  mode="outlined"
+                  keyboardType="email-address"
+                  theme={{ colors: { primary: theme.colors.primary, background: theme.colors.surface } }}
+                />
+                <View style={styles.buttonRow}>
+                  <Button
+                    mode="outlined"
+                    onPress={() => setIsEditing(false)}
+                    style={[styles.button, { marginRight: 10, flex: 1 }]}
+                    labelStyle={{ color: theme.colors.error }}
+                    icon="close"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={handleUpdateProfile}
+                    style={[styles.button, { flex: 1 }]}
+                    labelStyle={styles.buttonLabel}
+                    icon="check"
+                    loading={loading}
+                    disabled={loading}
+                  >
+                    Update
+                  </Button>
+                </View>
+              </>
+            )}
           </Card.Content>
         </Card>
       </View>
@@ -896,7 +989,7 @@ export default function FacultyDashboard({ navigation }) {
               {() => <StudentTasksScreen studentTasks={studentTasks} onTasksUpdated={handleTasksUpdated} />}
             </Tab.Screen>
             <Tab.Screen name="Profile">
-              {() => <ProfileScreen user={user} />}
+              {() => <ProfileScreen user={user} setUser={setUser} />}
             </Tab.Screen>
           </Tab.Navigator>
         </Animated.View>
@@ -1254,5 +1347,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     fontWeight: '500',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
   },
 });

@@ -21,7 +21,7 @@ router.post('/', authenticate, restrictTo('student'), async (req, res) => {
             'INSERT INTO tickets (user_id, description, status) VALUES (?, ?, ?)',
             [user_id, description, 'pending']
         );
-        console.log(`Ticket created for user ${user_id}`);
+        // console.log(`Ticket created for user ${user_id}`);
         res.json({ message: 'Ticket raised successfully' });
     } catch (error) {
         console.error(`Error raising ticket for user ${user_id}:`, error);
@@ -103,7 +103,7 @@ router.put('/:id/resolve', authenticate, restrictTo('super_admin'), async (req, 
         await connection.commit();
         console.log(`Ticket ${id} ${newStatus} for user ${userId}`);
         if (action === 'approve') {
-            console.log(`Profile edit permission granted for user ${userId} via ticket ${id}`);
+       //     console.log(`Profile edit permission granted for user ${userId} via ticket ${id}`);
         }
         res.json({ message: `Ticket ${newStatus} successfully` });
     } catch (error) {

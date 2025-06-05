@@ -175,4 +175,46 @@ router.post('/save', authenticate, restrictTo('student'), async (req, res) => {
     }
 });
 
+// Update profile (name and email)
+router.put('/update', authenticate, async (req, res) => {
+    const { name, email } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const userTable = userRole === 'student' ? 'users' : userRole === 'faculty' ? 'faculty' : 'super_admins';
+
+    if (!name || !email) {
+        return res.status(400).json({ message: 'Name and email are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    try {
+        // Check if email already exists for another user
+        const [existingUsers] = await db.query(
+            `SELECT id FROM ${userTable} WHERE email = ? AND id != ?`,
+            [email, userId]
+        );
+        
+        if (existingUsers.length > 0) {
+            return res.status(400).json({ message: 'Email already in use by another account' });
+        }
+
+        // Update user profile
+        await db.query(
+            `UPDATE ${userTable} SET name = ?, email = ? WHERE id = ?`,
+            [name, email, userId]
+        );
+
+    //    console.log(`Profile updated for user ${userId} (${userRole})`);
+        res.json({ message: 'Profile updated successfully' });
+    } catch (error) {
+        console.error(`Error updating profile for user ${userId}:`, error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;
