@@ -22,7 +22,7 @@ router.get('/:userId', authenticate, restrictTo('student'), async (req, res) => 
        // console.log(`Profile fetched for user ${userId}`);
         res.json({ profile: profile[0], can_edit_profile: profile[0].can_edit_profile });
     } catch (error) {
-        console.error(`Error fetching profile for user ${userId}:`, error);
+       // console.error(`Error fetching profile for user ${userId}:`, error);
         res.status(500).json({ message: 'Server error' });
     }
 });

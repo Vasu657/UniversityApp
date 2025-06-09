@@ -337,6 +337,45 @@ export default function ProfileScreen({ route, navigation }) {
     });
   };
 
+  const updateNameAndEmail = async (token) => {
+    // Only update name and email if they've changed
+    if (personalDetails.full_name !== user.name || personalDetails.email !== user.email) {
+      try {
+        const response = await axios.put(
+          `${API_BASE_URL}/api/profile/update`,
+          {
+            name: personalDetails.full_name,
+            email: personalDetails.email
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+       // console.log('Name and email updated successfully');
+        return true; // Return true to indicate success
+      } catch (error) {
+        console.error('Error updating name and email:', error);
+        
+        // Show specific alert for duplicate email
+        if (error.response?.status === 400 && error.response?.data?.message?.includes('Email already in use')) {
+          Alert.alert(
+            'Email Error', 
+            'This email is already registered to another account. Please use a different email.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          // For other errors, show the message from the server or a generic message
+          Alert.alert(
+            'Update Error', 
+            error.response?.data?.message || 'Failed to update profile information',
+            [{ text: 'OK' }]
+          );
+        }
+        
+        return false; // Return false to indicate failure
+      }
+    }
+    return true; // Return true if no update was needed
+  };
+
   const handleSubmit = async () => {
     if (!canEdit) {
       Alert.alert('Info', 'Profile editing is locked. Please raise a ticket to request changes.');
@@ -346,37 +385,48 @@ export default function ProfileScreen({ route, navigation }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const payload = {
-        userId: user.id,
-        profileData: {
-          personal_details: personalDetails,
-          education,
-          skills,
-          work_experience: workExperience,
-          projects,
-          certifications,
-          achievements,
-          languages,
-          hobbies,
-          resume_references: references,
-        },
-      };
-      const response = await axios.post(
-        `${API_BASE_URL}/api/profile/save`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('Save response:', response.data);
-      Alert.alert('Success', 'Profile saved successfully');
-      setCanEdit(false);
-      if (onProfileUpdated) {
-        await onProfileUpdated();
+      
+      // First update name and email if changed
+      const nameEmailUpdateSuccessful = await updateNameAndEmail(token);
+      
+      // Only proceed with saving the rest of the profile if name/email update was successful
+      // or if there was no change to name/email
+      if (nameEmailUpdateSuccessful) {
+        const payload = {
+          userId: user.id,
+          profileData: {
+            personal_details: personalDetails,
+            education,
+            skills,
+            work_experience: workExperience,
+            projects,
+            certifications,
+            achievements,
+            languages,
+            hobbies,
+            resume_references: references,
+          },
+        };
+        
+        const response = await axios.post(
+          `${API_BASE_URL}/api/profile/save`,
+          payload,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+       // console.log('Save response:', response.data);
+        Alert.alert('Success', 'Profile saved successfully');
+        setCanEdit(false);
+        if (onProfileUpdated) {
+          await onProfileUpdated();
+        }
+        navigation.goBack();
+      } else {
+        // If name/email update failed, don't continue with the rest of the profile save
+        setLoading(false);
       }
-      navigation.goBack();
     } catch (error) {
       console.error('Save profile error:', error, 'Response:', error.response?.data);
       Alert.alert('Error', error.response?.data?.message || 'Failed to save profile');
-    } finally {
       setLoading(false);
     }
   };
@@ -479,18 +529,20 @@ export default function ProfileScreen({ route, navigation }) {
                     <TextInput
                       label="Full Name"
                       value={personalDetails.full_name}
+                      onChangeText={(value) => setPersonalDetails({ ...personalDetails, full_name: value })}
                       style={styles.input}
                       mode="outlined"
-                      disabled={true}
+                      disabled={!canEdit}
                       theme={{ colors: { primary: theme.colors.primary } }}
                     />
                     <TextInput
                       label="Email"
                       value={personalDetails.email}
+                      onChangeText={(value) => setPersonalDetails({ ...personalDetails, email: value })}
                       style={styles.input}
                       mode="outlined"
                       keyboardType="email-address"
-                      disabled={true}
+                      disabled={!canEdit}
                       theme={{ colors: { primary: theme.colors.primary } }}
                     />
                     <View style={styles.dateInputContainer}>
