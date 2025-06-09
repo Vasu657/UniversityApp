@@ -167,7 +167,7 @@ router.post('/save', authenticate, restrictTo('student'), async (req, res) => {
             ]
         );
 
-        console.log(`Profile saved for user ${userId}`);
+       // console.log(`Profile saved for user ${userId}`);
         res.json({ message: 'Profile saved successfully' });
     } catch (error) {
         console.error(`Error saving profile for user ${userId}:`, error);

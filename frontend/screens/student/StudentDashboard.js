@@ -570,6 +570,7 @@ function ProfileScreen({ user, navigation, onProfileUpdated }) {
   const [refreshing, setRefreshing] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [expanded, setExpanded] = useState(null); // 'profile', 'help', or 'privacy'
+  const [hasPendingTickets, setHasPendingTickets] = useState(false);
 
   const toggleSection = (section) => {
     setExpanded(expanded === section ? null : section);
@@ -605,14 +606,31 @@ function ProfileScreen({ user, navigation, onProfileUpdated }) {
       setRefreshing(false);
     }
   };
+  
+  const checkPendingTickets = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/api/tickets/student/${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      // Check if there are any pending tickets
+      const pendingTickets = response.data.tickets?.filter(ticket => ticket.status === 'pending') || [];
+      setHasPendingTickets(pendingTickets.length > 0);
+    } catch (error) {
+      console.error('Check pending tickets error:', error);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchProfile();
+    await checkPendingTickets();
   };
 
   useEffect(() => {
     fetchProfile();
+    checkPendingTickets();
   }, [user.id]);
 
   const handleRaiseTicket = async () => {
@@ -624,6 +642,8 @@ function ProfileScreen({ user, navigation, onProfileUpdated }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       Alert.alert('Success', 'Ticket raised successfully. Please wait for admin approval.');
+      // Refresh ticket status after raising a new ticket
+      await checkPendingTickets();
     } catch (error) {
       console.error('Raise ticket error:', error);
       Alert.alert('Error', 'Failed to raise ticket');
@@ -662,12 +682,18 @@ function ProfileScreen({ user, navigation, onProfileUpdated }) {
               <Text style={styles.profileText}>
                 Your profile is complete. Raise a ticket to request changes.
               </Text>
+              {hasPendingTickets && (
+                <Text style={[styles.profileText, { color: theme.colors.warning, marginTop: 5 }]}>
+                  You already have a pending ticket. Please wait for it to be resolved.
+                </Text>
+              )}
               <Button
                 mode="contained"
                 onPress={handleRaiseTicket}
                 style={styles.button}
                 labelStyle={styles.buttonLabel}
                 icon="ticket"
+                disabled={hasPendingTickets}
               >
                 Raise Ticket
               </Button>

@@ -101,7 +101,7 @@ router.put('/:id/resolve', authenticate, restrictTo('super_admin'), async (req, 
 
         // Commit transaction
         await connection.commit();
-        console.log(`Ticket ${id} ${newStatus} for user ${userId}`);
+        //console.log(`Ticket ${id} ${newStatus} for user ${userId}`);
         if (action === 'approve') {
        //     console.log(`Profile edit permission granted for user ${userId} via ticket ${id}`);
         }
