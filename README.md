@@ -104,3 +104,39 @@ UniversityApp includes three role-specific dashboards, each tailored to the need
   - npm (Package Management)
 
 ## Project Structure
+UniversityApp/
+├── backend/
+│   ├── server.js               # Entry point for the Node.js backend
+│   ├── routes/                 # API routes for users, tasks, tickets, etc.
+│   ├── models/                 # Database models (e.g., User, Faculty, Task)
+│   ├── controllers/            # Business logic for API endpoints
+│   └── config/                 # Database configuration and environment variables
+├── frontend/
+│   ├── App.js                  # Main React Native application file
+│   ├── components/             # Reusable UI components
+│   ├── screens/                # Screens for dashboards (Student, Faculty, Super Admin)
+│   ├── navigation/             # Navigation setup for the app
+│   └── assets/                 # Images, fonts, and other static assets
+├── database/
+│   ├── university_app.sql      # MySQL database schema and seed data
+│   └── migrations/             # Database migration scripts
+├── README.md                   # Project documentation
+└── package.json                # Project dependencies and scripts
+
+
+## Setup Instructions
+
+### Prerequisites
+- **Node.js** (v16 or higher)
+- **MySQL** (v8.0 or higher)
+- **Expo CLI** (`npm install -g expo-cli`)
+- **Git** (for cloning the repository)
+- **npm** (comes with Node.js)
+- A MySQL database instance (local or hosted)
+
+### Backend Setup
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/Vasu657/UniversityApp.git
+   cd UniversityApp/backend
+   
