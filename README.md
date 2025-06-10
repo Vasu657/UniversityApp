@@ -104,6 +104,7 @@ UniversityApp includes three role-specific dashboards, each tailored to the need
   - npm (Package Management)
 
 ## Project Structure
+```bash
 UniversityApp/
 ├── backend/
 │   ├── server.js               # Entry point for the Node.js backend
@@ -123,7 +124,7 @@ UniversityApp/
 ├── README.md                   # Project documentation
 └── package.json                # Project dependencies and scripts
 
-
+```
 ## Setup Instructions
 
 ### Prerequisites
