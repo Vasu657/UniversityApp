@@ -166,3 +166,57 @@ UniversityApp/
 
 ## Frontend Setup
 1. **Navigate to the Frontend Directory**:
+   ```bash
+   cd ../frontend
+   
+2. **Install Dependencies:**
+   ```bash
+   npm install
+   
+3. **Configure API Endpoint**:
+- Update the API base URL in the frontend code (e.g., in frontend/config.js or similar) to point to the backend:
+   ```bash
+   export const API_BASE_URL = 'http://localhost:3000/api';
+   
+4. **Start the Frontend:**
+   ```bash
+   npx expo start --tunnel
+
+## Running the Application
+1. **Backend:**
+   ```bash
+   cd backend
+    node server.js
+   
+2. **Frontend:**
+   ```bash
+   cd frontend
+    npx expo start --tunnel
+   
+Follow the Expo CLI instructions to run the app on a mobile device, emulator, or web browser.
+## Database Schema
+The university_app database includes the following tables:
+
+**users**: Stores student, faculty, and super admin details, including JSON fields for profile data (personal details, education, skills, etc.).
+**faculty**: Stores faculty-specific data (name, email, branch, password).
+**super_admins**: Stores super admin data (name, email, branch, password).
+**tasks**: Manages tasks assigned to users, with fields for status, due date, and notes.
+**tickets**: Handles profile edit requests, with status and response fields.
+**resumes**: Stores student-generated resumes with JSON data and template references.
+**resume_templates**: Stores branch-specific resume templates.
+For detailed schema information, refer to the SQL files in the database directory.
+
+## Contributing
+Contributions are welcome! To contribute:
+
+Fork the repository.
+Create a new branch (git checkout -b feature/your-feature).
+Make your changes and commit (git commit -m 'Add your feature').
+Push to the branch (git push origin feature/your-feature).
+Open a pull request on GitHub.
+Please ensure your code follows the project's coding standards and includes appropriate tests.
+
+## License
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+undefined
