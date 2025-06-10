@@ -195,16 +195,36 @@ UniversityApp/
    
 Follow the Expo CLI instructions to run the app on a mobile device, emulator, or web browser.
 ## Database Schema
-The university_app database includes the following tables:
+The `university_app` database includes the following tables:
 
-**users**: Stores student, faculty, and super admin details, including JSON fields for profile data (personal details, education, skills, etc.).
-**faculty**: Stores faculty-specific data (name, email, branch, password).
-**super_admins**: Stores super admin data (name, email, branch, password).
-**tasks**: Manages tasks assigned to users, with fields for status, due date, and notes.
-**tickets**: Handles profile edit requests, with status and response fields.
-**resumes**: Stores student-generated resumes with JSON data and template references.
-**resume_templates**: Stores branch-specific resume templates.
-For detailed schema information, refer to the SQL files in the database directory.
+- **`users`**:
+  - Stores student, faculty, and super admin details.
+  - Includes JSON fields for profile data (e.g., personal details, education, skills, work experience, projects, certifications, achievements, languages, hobbies, resume references).
+
+- **`faculty`**:
+  - Stores faculty-specific data.
+  - Fields: name, email, branch, password.
+
+- **`super_admins`**:
+  - Stores super admin data.
+  - Fields: name, email, branch, password.
+
+- **`tasks`**:
+  - Manages tasks assigned to users.
+  - Fields: status, due date, notes, and other task-related details.
+
+- **`tickets`**:
+  - Handles profile edit requests.
+  - Fields: status, response, and other ticket-related details.
+
+- **`resumes`**:
+  - Stores student-generated resumes.
+  - Includes JSON data and template references.
+
+- **`resume_templates`**:
+  - Stores branch-specific resume templates.
+
+For detailed schema information, refer to the SQL files in the `database` directory.
 
 ## Contributing
 Contributions are welcome! To contribute:
