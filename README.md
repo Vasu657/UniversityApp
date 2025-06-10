@@ -139,4 +139,30 @@ UniversityApp/
    ```bash
    git clone https://github.com/Vasu657/UniversityApp.git
    cd UniversityApp/backend
-   
+
+2. **Install Dependencies**:
+   ```bash
+   npm install
+
+3. **Configure Environment Variables**:
+- Create a .env file in the backend directory.
+- Add the following variables:
+  ```bash
+  DB_HOST=localhost
+  DB_USER=your_mysql_user
+  DB_PASSWORD=your_mysql_password
+  DB_NAME=university_app
+  PORT=3000
+  
+4. **Set Up the intrinsic Database**:
+- Create a MySQL database named university_app.
+- Import the provided SQL dump:
+- ```bash
+  mysql -u your_mysql_user -p university_app < database/university_app.sql
+
+5. **Start the Backend Server**:
+   ```bash
+   node server.js
+
+## Frontend Setup
+1. **Navigate to the Frontend Directory**:
