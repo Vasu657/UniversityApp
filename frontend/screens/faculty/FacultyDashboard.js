@@ -139,7 +139,7 @@ const AnimatedTaskCard = ({ item, isStudentTask = false, index, onUpdateTask }) 
                       Link: {item.link}
                     </Text>
                   )}
-                  {!isStudentTask && ( // Conditionally render the button only if it's not a student task
+                  {!isStudentTask && (
                     <Button
                       mode="outlined"
                       onPress={() => setUpdateDialogVisible(true)}
@@ -207,8 +207,8 @@ const AnimatedTaskCard = ({ item, isStudentTask = false, index, onUpdateTask }) 
   );
 };
 
-// Home Screen: Displays Your Tasks (limited to 5) and Metrics
-function HomeScreen({ user, tasksAssignedToMe, studentTasks }) {
+// Home Screen: Displays Your Tasks (limited to 5), Metrics, and Attendance Button
+function HomeScreen({ user, tasksAssignedToMe, studentTasks, navigation }) {
   const sortTasksByDate = (tasks) => {
     return [...tasks].sort((a, b) => {
       const dateA = a.created_at ? new Date(a.created_at) : null;
@@ -220,7 +220,6 @@ function HomeScreen({ user, tasksAssignedToMe, studentTasks }) {
     });
   };
 
-  // Calculate task metrics
   const calculateTaskMetrics = () => {
     const totalMyTasks = tasksAssignedToMe.length;
     const totalStudentTasks = studentTasks.length;
@@ -264,7 +263,6 @@ function HomeScreen({ user, tasksAssignedToMe, studentTasks }) {
   const sortedTasksAssignedToMe = sortTasksByDate(tasksAssignedToMe);
   const limitedTasksAssignedToMe = sortedTasksAssignedToMe.slice(0, 5);
 
-  // Render a metric card
   const MetricCard = ({ title, value, icon, color }) => (
     <Card style={[styles.metricCard, { borderLeftColor: color }]}>
       <Card.Content style={styles.metricCardContent}>
@@ -314,6 +312,16 @@ function HomeScreen({ user, tasksAssignedToMe, studentTasks }) {
           </View>
         </View>
 
+        <Button
+          mode="contained"
+          onPress={() => navigation.navigate('StudentAttendance')}
+          style={styles.button}
+          labelStyle={styles.buttonLabel}
+          icon="clipboard-check"
+        >
+          Mark Attendance
+        </Button>
+
         <Text style={styles.sectionTitle}>Recent Tasks</Text>
         {limitedTasksAssignedToMe.length === 0 ? (
           <Text style={styles.noDataText}>No tasks assigned to you.</Text>
@@ -357,7 +365,6 @@ function AssignTaskScreen({ user, students, onTaskAssigned }) {
         : null;
 
       if (isSelfAssign) {
-        // Assign to self (faculty)
         await axios.post(
           `${API_BASE_URL}/api/tasks/assign`,
           { 
@@ -370,11 +377,9 @@ function AssignTaskScreen({ user, students, onTaskAssigned }) {
         );
         Alert.alert('Success', 'Task assigned to yourself successfully');
       } else if (assignedTo === 'all_students') {
-        // Assign to all students
         let successCount = 0;
         let errorCount = 0;
         
-        // Create a progress dialog
         Alert.alert('Processing', 'Assigning tasks to all students. This may take a moment...');
         
         for (const student of students) {
@@ -401,7 +406,6 @@ function AssignTaskScreen({ user, students, onTaskAssigned }) {
           `Successfully assigned to ${successCount} students${errorCount > 0 ? `, failed for ${errorCount} students` : ''}`
         );
       } else {
-        // Assign to a single student
         await axios.post(
           `${API_BASE_URL}/api/tasks/assign`,
           { 
@@ -415,7 +419,6 @@ function AssignTaskScreen({ user, students, onTaskAssigned }) {
         Alert.alert('Success', 'Task assigned successfully');
       }
       
-      // Reset form
       setTask('');
       setDueDate(null);
       setAssignedTo('');
@@ -482,7 +485,7 @@ function AssignTaskScreen({ user, students, onTaskAssigned }) {
                       color={theme.colors.primary}
                       style={{fontWeight: 'bold'}}
                     />
-                    <Picker.Item label="──────────────────" enabled={false} />
+                    <Picker.Item label="──────────────" enabled={false} />
                     {students.map((s) => (
                       <Picker.Item key={s.id} label={s.name} value={s.id} color={theme.colors.text} />
                     ))}
@@ -691,7 +694,6 @@ function ProfileScreen({ user, setUser }) {
       return;
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Error', 'Please enter a valid email address');
@@ -708,12 +710,10 @@ function ProfileScreen({ user, setUser }) {
       );
       Alert.alert('Success', 'Profile updated successfully');
       
-      // Update local user state
       const updatedUser = { ...user, name, email };
       setUser(updatedUser);
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       
-      // Refresh the page to show updated info
       setIsEditing(false);
     } catch (error) {
       console.error('Update profile error:', error.response?.data);
@@ -734,7 +734,6 @@ function ProfileScreen({ user, setUser }) {
             </View>
             
             {!isEditing ? (
-              // Display mode
               <>
                 <View style={styles.profileRow}>
                   <Icon name="account" size={20} color={theme.colors.primary} style={styles.profileIcon} />
@@ -763,7 +762,6 @@ function ProfileScreen({ user, setUser }) {
                 </Button>
               </>
             ) : (
-              // Edit mode
               <>
                 <Title style={[styles.sectionTitle, { marginTop: 20 }]}>Update Profile</Title>
                 <TextInput
@@ -977,7 +975,7 @@ export default function FacultyDashboard({ navigation }) {
             })}
           >
             <Tab.Screen name="Home">
-              {() => <HomeScreen user={user} tasksAssignedToMe={tasksAssignedToMe} studentTasks={studentTasks} />}
+              {() => <HomeScreen user={user} tasksAssignedToMe={tasksAssignedToMe} studentTasks={studentTasks} navigation={navigation} />}
             </Tab.Screen>
             <Tab.Screen name="Assign Task">
               {() => <AssignTaskScreen user={user} students={students} onTaskAssigned={handleTaskAssigned} />}
@@ -1320,33 +1318,6 @@ const styles = StyleSheet.create({
   loadMoreButtonLabel: {
     color: theme.colors.primary,
     fontSize: 14,
-  },
-  selectAllContainer: {
-    marginVertical: 10,
-    paddingHorizontal: 5,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: theme.colors.primary,
-  },
-  checkboxLabel: {
-    fontSize: 16,
-    color: theme.colors.text,
-    fontWeight: '500',
   },
   buttonRow: {
     flexDirection: 'row',
