@@ -10,6 +10,7 @@ import ResumeTemplate from './screens/student/ResumeTemplate';
 import FacultyDashboard from './screens/faculty/FacultyDashboard';
 import StudentAttendance from './screens/faculty/StudentAttendance';
 import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard';
+import ChatMessageScreen from './screens/faculty/ChatMessageScreen';
 
 const Stack = createStackNavigator();
 
@@ -26,6 +27,7 @@ export default function App() {
                 <Stack.Screen name="SuperAdminDashboard" component={SuperAdminDashboard} options={{ headerShown: false }} />
                 <Stack.Screen name="ProfileUpdate" component={ProfileUpdateScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="ResumeTemplate" component={ResumeTemplate} options={{ headerShown: false }} />
+                <Stack.Screen name="ChatMessage" component={ChatMessageScreen} options={{ headerShown: false }} />
             </Stack.Navigator>
         </NavigationContainer>
     );

@@ -312,15 +312,26 @@ function HomeScreen({ user, tasksAssignedToMe, studentTasks, navigation }) {
           </View>
         </View>
 
-        <Button
-          mode="contained"
-          onPress={() => navigation.navigate('StudentAttendance')}
-          style={styles.button}
-          labelStyle={styles.buttonLabel}
-          icon="clipboard-check"
-        >
-          Mark Attendance
-        </Button>
+        <View style={styles.buttonRow}>
+          <Button
+            mode="contained"
+            onPress={() => navigation.navigate('StudentAttendance')}
+            style={[styles.button, { flex: 1, marginRight: 10 }]}
+            labelStyle={styles.buttonLabel}
+            icon="clipboard-check"
+          >
+            Mark Attendance
+          </Button>
+          <Button
+            mode="contained"
+            onPress={() => navigation.navigate('ChatMessage')}
+            style={[styles.button, { flex: 1 }]}
+            labelStyle={styles.buttonLabel}
+            icon="message"
+          >
+            Chat
+          </Button>
+        </View>
 
         <Text style={styles.sectionTitle}>Recent Tasks</Text>
         {limitedTasksAssignedToMe.length === 0 ? (
@@ -329,7 +340,8 @@ function HomeScreen({ user, tasksAssignedToMe, studentTasks, navigation }) {
           limitedTasksAssignedToMe.map((item, index) => (
             <AnimatedTaskCard key={`task-${item.id}`} item={item} index={index} onUpdateTask={() => {}} />
           ))
-        )}
+        )
+        }
       </View>
     </ScrollView>
   );
