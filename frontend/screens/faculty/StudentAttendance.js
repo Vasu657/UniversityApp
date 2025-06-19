@@ -334,7 +334,9 @@ function ReportsScreen({
   setReportViewType,
   monthlyReports,
   handleFromDateChange,
-  handleToDateChange
+  handleToDateChange,
+  fetchAttendanceReport,
+  fetchMonthlyAttendanceReport
 }) {
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -386,6 +388,24 @@ function ReportsScreen({
               </Picker>
             </View>
           </View>
+          
+          {/* Generate Report Button */}
+          <Button
+            mode="contained"
+            onPress={() => {
+              if (reportViewType === 'monthly') {
+                fetchMonthlyAttendanceReport();
+              } else {
+                fetchAttendanceReport();
+              }
+            }}
+            style={styles.button}
+            labelStyle={styles.buttonLabel}
+            icon="chart-line"
+            disabled={!reportSemester || !reportSubject}
+          >
+            Generate Report
+          </Button>
         </Card.Content>
       </Card>
 
@@ -618,10 +638,29 @@ function ReportsScreen({
             <Icon name="chart-line" size={60} color="#BDBDBD" />
             <Text style={styles.noDataText}>
               {!reportSemester || !reportSubject ? 
-                'Select semester and subject to view report' : 
-                'No attendance data found for selected period'
+                'Select semester and subject, then click "Generate Report"' : 
+                reportLoading ? 
+                'Loading...' :
+                'No attendance data found for the selected criteria. This could mean:\n\n• No attendance has been marked for this subject/semester\n• No students are enrolled in your branch\n• The selected date range has no recorded attendance'
               }
             </Text>
+            {reportSemester && reportSubject && !reportLoading && (
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  if (reportViewType === 'monthly') {
+                    fetchMonthlyAttendanceReport();
+                  } else {
+                    fetchAttendanceReport();
+                  }
+                }}
+                style={[styles.button, { marginTop: 16 }]}
+                labelStyle={styles.buttonLabel}
+                icon="refresh"
+              >
+                Retry
+              </Button>
+            )}
           </Card.Content>
         </Card>
       )}
@@ -670,15 +709,16 @@ const StudentAttendance = ({ navigation }) => {
     fetchDashboardStats();
   }, []);
 
-  useEffect(() => {
-    if (reportSemester && reportSubject) {
-      if (reportViewType === 'monthly') {
-        fetchMonthlyAttendanceReport();
-      } else {
-        fetchAttendanceReport();
-      }
-    }
-  }, [reportSemester, reportSubject, selectedMonth, selectedYear, reportFromDate, reportToDate, reportViewType]);
+  // Remove automatic fetching - users will click "Generate Report" button instead
+  // useEffect(() => {
+  //   if (reportSemester && reportSubject) {
+  //     if (reportViewType === 'monthly') {
+  //       fetchMonthlyAttendanceReport();
+  //     } else {
+  //       fetchAttendanceReport();
+  //     }
+  //   }
+  // }, [reportSemester, reportSubject, selectedMonth, selectedYear, reportFromDate, reportToDate, reportViewType]);
 
   const fetchData = async () => {
     try {
@@ -722,32 +762,23 @@ const StudentAttendance = ({ navigation }) => {
   const fetchDashboardStats = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const userData = await AsyncStorage.getItem('user');
-      const user = JSON.parse(userData);
-
-      // Fetch students count
-      const studentsResponse = await axios.get(
-        `${API_BASE_URL}/api/dashboard/students`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { branch: user.branch },
-        }
-      );
-
-      // Fetch semesters and subjects count
-      const configResponse = await axios.get(
-        `${API_BASE_URL}/api/attendance/config`,
+      
+      // Fetch dashboard statistics from backend
+      const statsResponse = await axios.get(
+        `${API_BASE_URL}/api/attendance/dashboard/stats`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setDashboardStats({
-        totalStudents: studentsResponse.data.students?.length || 0,
-        totalSemesters: configResponse.data.semesters?.length || 0,
-        totalSubjects: configResponse.data.subjects?.length || 0,
-        attendanceMarkedToday: Math.floor(Math.random() * 10) + 1 // Mock data
-      });
+      setDashboardStats(statsResponse.data.stats);
     } catch (error) {
-      //console.error('Fetch dashboard stats error:', error);
+      console.error('Fetch dashboard stats error:', error);
+      // Fallback to default values if API call fails
+      setDashboardStats({
+        totalStudents: 0,
+        totalSemesters: 0,
+        totalSubjects: 0,
+        attendanceMarkedToday: 0
+      });
     }
   };
 
@@ -758,26 +789,29 @@ const StudentAttendance = ({ navigation }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       
-      // Mock data for date range attendance report
-      const mockReport = students.map(student => {
-        const daysDiff = Math.ceil((reportToDate - reportFromDate) / (1000 * 60 * 60 * 24));
-        const totalClasses = Math.max(1, Math.floor(daysDiff / 7) * 3); // Assume 3 classes per week
-        const attendedClasses = Math.floor(Math.random() * totalClasses);
-        const percentage = Math.round((attendedClasses / totalClasses) * 100);
-        
-        return {
-          id: student.id,
-          name: student.name,
-          totalClasses,
-          attendedClasses,
-          percentage,
-          dateRange: `${reportFromDate.toLocaleDateString()} - ${reportToDate.toLocaleDateString()}`
-        };
-      });
+      // Format dates for API call
+      const fromDate = reportFromDate.toISOString().split('T')[0];
+      const toDate = reportToDate.toISOString().split('T')[0];
       
-      setAttendanceReport(mockReport);
+      // Fetch real attendance report from backend
+      const response = await axios.get(
+        `${API_BASE_URL}/api/attendance/report/date-range`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            semester: reportSemester,
+            subject: reportSubject,
+            fromDate: fromDate,
+            toDate: toDate
+          }
+        }
+      );
+      
+      setAttendanceReport(response.data.reportData || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch attendance report');
+      console.error('Fetch attendance report error:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to fetch attendance report');
+      setAttendanceReport([]);
     } finally {
       setReportLoading(false);
     }
@@ -790,32 +824,25 @@ const StudentAttendance = ({ navigation }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       
-      // Get days in selected month
-      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const monthName = new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      // Fetch real monthly attendance report from backend
+      const response = await axios.get(
+        `${API_BASE_URL}/api/attendance/report/monthly`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            semester: reportSemester,
+            subject: reportSubject,
+            month: selectedMonth,
+            year: selectedYear
+          }
+        }
+      );
       
-      // Mock data for monthly attendance report
-      const mockMonthlyReport = students.map(student => {
-        // Assume classes happen on weekdays (roughly 22 days per month)
-        const weekdaysInMonth = Math.floor(daysInMonth * 0.7); // Approximate weekdays
-        const totalClasses = Math.max(10, Math.floor(weekdaysInMonth * 0.6)); // Not every weekday has class
-        const attendedClasses = Math.floor(Math.random() * totalClasses);
-        const percentage = Math.round((attendedClasses / totalClasses) * 100);
-        
-        return {
-          id: student.id,
-          name: student.name,
-          totalClasses,
-          attendedClasses,
-          percentage,
-          monthYear: monthName,
-          attendanceDisplay: `${attendedClasses}/${totalClasses}`
-        };
-      });
-      
-      setMonthlyReports(mockMonthlyReport);
+      setMonthlyReports(response.data.reportData || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch monthly attendance report');
+      console.error('Fetch monthly attendance report error:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to fetch monthly attendance report');
+      setMonthlyReports([]);
     } finally {
       setReportLoading(false);
     }
@@ -1363,6 +1390,7 @@ const StudentAttendance = ({ navigation }) => {
           })}
         >
           <Tab.Screen name="Home">
+            
             {() => <HomeScreen facultyData={facultyData} dashboardStats={dashboardStats} navigation={navigation} />}
           </Tab.Screen>
           <Tab.Screen name="Mark Attendance">
@@ -1423,6 +1451,8 @@ const StudentAttendance = ({ navigation }) => {
                 monthlyReports={monthlyReports}
                 handleFromDateChange={handleFromDateChange}
                 handleToDateChange={handleToDateChange}
+                fetchAttendanceReport={fetchAttendanceReport}
+                fetchMonthlyAttendanceReport={fetchMonthlyAttendanceReport}
               />
             )}
           </Tab.Screen>

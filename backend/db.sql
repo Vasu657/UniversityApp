@@ -80,3 +80,21 @@ CREATE TABLE resumes (
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (template_id) REFERENCES resume_templates(id) ON DELETE CASCADE
 );
+
+-- Attendance table
+CREATE TABLE attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id INT NOT NULL,
+    student_id INT NOT NULL,
+    status ENUM('present', 'absent') NOT NULL,
+    date DATE NOT NULL,
+    semester VARCHAR(255) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE,
+    INDEX idx_faculty_date (faculty_id, date),
+    INDEX idx_student_date (student_id, date),
+    INDEX idx_semester_subject (semester, subject),
+    UNIQUE KEY unique_attendance (faculty_id, student_id, date, semester, subject)
+);

@@ -176,4 +176,198 @@ router.post('/mark', authenticate, restrictTo('faculty'), async (req, res) => {
     }
 });
 
+// Get attendance report for date range
+router.get('/report/date-range', authenticate, restrictTo('faculty'), async (req, res) => {
+    const { semester, subject, fromDate, toDate } = req.query;
+    
+    if (!semester || !subject || !fromDate || !toDate) {
+        return res.status(400).json({ message: 'Semester, subject, fromDate, and toDate are required' });
+    }
+
+    try {
+        // Get faculty info to filter students by branch
+        const [faculty] = await db.query('SELECT branch FROM faculty WHERE id = ?', [req.user.id]);
+        if (faculty.length === 0) {
+            return res.status(403).json({ message: 'Invalid faculty user' });
+        }
+
+        // Get all students in the faculty's branch
+        const [students] = await db.query(
+            'SELECT id, name FROM users WHERE branch = ? AND role = "student"',
+            [faculty[0].branch]
+        );
+
+        if (students.length === 0) {
+            return res.status(200).json({ reportData: [] });
+        }
+
+        // Get attendance records for the date range
+        const [attendanceRecords] = await db.query(`
+            SELECT 
+                student_id,
+                status,
+                date
+            FROM attendance 
+            WHERE faculty_id = ? 
+            AND semester = ? 
+            AND subject = ? 
+            AND date BETWEEN ? AND ?
+            AND student_id != 0
+            ORDER BY student_id, date
+        `, [req.user.id, semester, subject, fromDate, toDate]);
+
+        // Calculate attendance statistics for each student
+        const reportData = students.map(student => {
+            const studentAttendance = attendanceRecords.filter(record => record.student_id == student.id);
+            
+            const totalClasses = studentAttendance.length;
+            const attendedClasses = studentAttendance.filter(record => record.status === 'present').length;
+            const percentage = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
+
+            return {
+                id: student.id,
+                name: student.name,
+                totalClasses,
+                attendedClasses,
+                percentage,
+                dateRange: `${fromDate} - ${toDate}`
+            };
+        });
+
+        res.status(200).json({ reportData });
+    } catch (error) {
+        console.error(`Error fetching date range report for faculty_id: ${req.user.id}:`, error.message, error.stack);
+        res.status(500).json({ message: 'Failed to fetch attendance report', error: error.message });
+    }
+});
+
+// Get monthly attendance report
+router.get('/report/monthly', authenticate, restrictTo('faculty'), async (req, res) => {
+    const { semester, subject, month, year } = req.query;
+    
+    if (!semester || !subject || month === undefined || !year) {
+        return res.status(400).json({ message: 'Semester, subject, month, and year are required' });
+    }
+
+    try {
+        // Get faculty info to filter students by branch
+        const [faculty] = await db.query('SELECT branch FROM faculty WHERE id = ?', [req.user.id]);
+        if (faculty.length === 0) {
+            return res.status(403).json({ message: 'Invalid faculty user' });
+        }
+
+        // Get all students in the faculty's branch
+        const [students] = await db.query(
+            'SELECT id, name FROM users WHERE branch = ? AND role = "student"',
+            [faculty[0].branch]
+        );
+
+        if (students.length === 0) {
+            return res.status(200).json({ reportData: [] });
+        }
+
+        // Calculate date range for the selected month and year
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, parseInt(month) + 1, 0); // Last day of the month
+        
+        const formatDate = (date) => date.toISOString().split('T')[0];
+        const fromDate = formatDate(startDate);
+        const toDate = formatDate(endDate);
+
+        // Get attendance records for the month
+        const [attendanceRecords] = await db.query(`
+            SELECT 
+                student_id,
+                status,
+                date
+            FROM attendance 
+            WHERE faculty_id = ? 
+            AND semester = ? 
+            AND subject = ? 
+            AND date BETWEEN ? AND ?
+            AND student_id != 0
+            ORDER BY student_id, date
+        `, [req.user.id, semester, subject, fromDate, toDate]);
+
+        // Calculate attendance statistics for each student
+        const months = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        
+        const monthName = months[parseInt(month)];
+        const monthYear = `${monthName} ${year}`;
+
+        const reportData = students.map(student => {
+            const studentAttendance = attendanceRecords.filter(record => record.student_id == student.id);
+            
+            const totalClasses = studentAttendance.length;
+            const attendedClasses = studentAttendance.filter(record => record.status === 'present').length;
+            const percentage = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
+
+            return {
+                id: student.id,
+                name: student.name,
+                totalClasses,
+                attendedClasses,
+                percentage,
+                monthYear,
+                attendanceDisplay: `${attendedClasses}/${totalClasses}`
+            };
+        });
+
+        res.status(200).json({ reportData });
+    } catch (error) {
+        console.error(`Error fetching monthly report for faculty_id: ${req.user.id}:`, error.message, error.stack);
+        res.status(500).json({ message: 'Failed to fetch monthly attendance report', error: error.message });
+    }
+});
+
+// Get dashboard statistics
+router.get('/dashboard/stats', authenticate, restrictTo('faculty'), async (req, res) => {
+    try {
+        // Get faculty info
+        const [faculty] = await db.query('SELECT branch FROM faculty WHERE id = ?', [req.user.id]);
+        if (faculty.length === 0) {
+            return res.status(403).json({ message: 'Invalid faculty user' });
+        }
+
+        // Get total students in faculty's branch
+        const [studentsCount] = await db.query(
+            'SELECT COUNT(*) as count FROM users WHERE branch = ? AND role = "student"',
+            [faculty[0].branch]
+        );
+
+        // Get semesters and subjects count
+        const [semestersCount] = await db.query(
+            'SELECT COUNT(DISTINCT semester) as count FROM attendance WHERE faculty_id = ? AND semester != "DUMMY_SEMESTER"',
+            [req.user.id]
+        );
+        
+        const [subjectsCount] = await db.query(
+            'SELECT COUNT(DISTINCT subject) as count FROM attendance WHERE faculty_id = ? AND subject != "DUMMY_SUBJECT"',
+            [req.user.id]
+        );
+
+        // Get attendance marked today
+        const today = new Date().toISOString().split('T')[0];
+        const [attendanceToday] = await db.query(
+            'SELECT COUNT(DISTINCT student_id) as count FROM attendance WHERE faculty_id = ? AND date = ? AND student_id != 0',
+            [req.user.id, today]
+        );
+
+        const stats = {
+            totalStudents: studentsCount[0].count,
+            totalSemesters: semestersCount[0].count,
+            totalSubjects: subjectsCount[0].count,
+            attendanceMarkedToday: attendanceToday[0].count
+        };
+
+        res.status(200).json({ stats });
+    } catch (error) {
+        console.error(`Error fetching dashboard stats for faculty_id: ${req.user.id}:`, error.message, error.stack);
+        res.status(500).json({ message: 'Failed to fetch dashboard statistics', error: error.message });
+    }
+});
+
 module.exports = router;
