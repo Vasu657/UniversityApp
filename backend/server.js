@@ -8,16 +8,17 @@ const taskRoutes = require('./routes/tasks');
 const profileRoutes = require('./routes/profile');
 const ticketRoutes = require('./routes/tickets');
 const attendanceRoutes = require('./routes/attendance');
+const chatRoutes = require('./routes/chat');
 
 dotenv.config();
 const app = express();
 
 // Configure CORS to allow requests from the frontend
 app.use(cors({
-    origin: '*', // Allow all origins for development; restrict in production (e.g., 'http://your-frontend-url')
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true // Enable if you need to send cookies or auth headers
+    credentials: true
 }));
 
 // Parse JSON bodies
@@ -25,7 +26,6 @@ app.use(express.json());
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
-   // console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
 
@@ -37,6 +37,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -45,13 +46,11 @@ app.get('/health', (req, res) => {
 
 // Handle 404 errors for undefined routes
 app.use((req, res) => {
-   // console.warn(`404 Not Found: ${req.method} ${req.url}`);
     res.status(404).json({ message: 'Route not found' });
 });
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
-   // console.error(`[${new Date().toISOString()}] Error:`, err.message, err.stack);
     res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 

@@ -98,3 +98,17 @@ CREATE TABLE attendance (
     INDEX idx_semester_subject (semester, subject),
     UNIQUE KEY unique_attendance (faculty_id, student_id, date, semester, subject)
 );
+
+CREATE TABLE messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT NOT NULL,
+    sender_role ENUM('faculty', 'student') NOT NULL,
+    receiver_id INT NOT NULL,
+    receiver_role ENUM('faculty', 'student') NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sender (sender_id, sender_role),
+    INDEX idx_receiver (receiver_id, receiver_role),
+    INDEX idx_conversation (sender_id, sender_role, receiver_id, receiver_role, created_at)
+);
